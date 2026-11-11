@@ -1,9 +1,19 @@
 ﻿from fastapi import FastAPI, HTTPException
-from src.core.database import get_db
+from pydantic import BaseModel
+from src.core.database import get_db, init_db
 from src.core.detector import detect_volumetric_anomalies
 from src.core.rules_engine import evaluate_cloudtrail_event
 
 app = FastAPI(title="SecOps Assistido API", version="2.0")
+
+class LogIngestRequest(BaseModel):
+    source: str
+    event_name: str
+    details: dict
+
+@app.on_event("startup")
+def startup_event():
+    init_db()
 
 @app.get("/")
 def read_root():
@@ -16,12 +26,25 @@ def get_logs(limit: int = 50):
         rows = cursor.fetchall()
         return [dict(row) for row in rows]
 
-@app.get("/anomalies/detect")
-def run_detection():
-    anomalies = detect_volumetric_anomalies()
-    return {"anomalies_detected": len(anomalies), "items": anomalies}
+@app.post("/pipeline/trigger")
+def trigger_pipeline(payload: LogIngestRequest):
+    try:
+        with get_db() as conn:
+            conn.execute(
+                "INSERT INTO logs (source, event_name, raw_data) VALUES (?, ?, ?)",
+                (payload.source, payload.event_name, str(payload.details))
+            )
+            conn.commit()
+        
+        # Executar verificações de anomalias e regras sobre o evento inserido
+        vol_anomalies = detect_volumetric_anomalies()
+        alerts = evaluate_cloudtrail_event({"eventName": payload.event_name, "details": payload.details})
 
-@app.post("/rules/evaluate")
-def evaluate_rule(event: dict):
-    alerts = evaluate_cloudtrail_event(event)
-    return {"alerts": alerts}
+        return {
+            "status": "success",
+            "message": "Pipeline executado sob demanda com sucesso.",
+            "volumetric_anomalies_found": len(vol_anomalies),
+            "rules_alerts_triggered": alerts
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
