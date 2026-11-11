@@ -1,0 +1,25 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>SecOps Assistido - Relatório de Anomalia</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f6f9; color: #333; }
+        .container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { color: #d9534f; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; color: #fff; background: #d9534f; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Alerta de Segurança: {{ anomaly_type }}</h2>
+        <p><strong>Timestamp:</strong> {{ timestamp }}</p>
+        <p><strong>Nível de Severidade:</strong> <span class="badge">{{ severity }}</span></p>
+        <hr>
+        <h3>Detalhes do Evento</h3>
+        <p>{{ details }}</p>
+        <h3>Explicação Gerada por IA</h3>
+        <p>{{ ai_explanation }}</p>
+    </div>
+</body>
+</html>
