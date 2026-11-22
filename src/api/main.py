@@ -32,10 +32,27 @@ def get_logs(limit: int = 50):
 @app.post("/pipeline/trigger")
 def trigger_pipeline(payload: LogIngestRequest):
     try:
+        ts = datetime.now(timezone.utc).isoformat()
+        details = payload.details or {}
+        level = str(details.get("level") or "INFO")
+        message = str(
+            details.get("message")
+            or f"{payload.event_name} from {payload.source}"
+        )
         with get_db() as conn:
             conn.execute(
-                "INSERT INTO logs (source, event_name, raw_data) VALUES (?, ?, ?)",
-                (payload.source, payload.event_name, str(payload.details))
+                """
+                INSERT INTO logs (timestamp, level, message, source, event_name, raw_data)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    ts,
+                    level,
+                    message,
+                    payload.source,
+                    payload.event_name,
+                    json.dumps(details, ensure_ascii=False),
+                ),
             )
             conn.commit()
         
