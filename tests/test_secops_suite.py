@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from fastapi.testclient import TestClient
 from src.api.main import app
 from src.core.database import init_db, get_db

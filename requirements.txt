@@ -1,6 +1,10 @@
-﻿fastapi
+fastapi
 uvicorn
 streamlit
-pandas
+scikit-learn
+numpy
+jinja2
+requests
+pydantic
 pytest
 httpx
