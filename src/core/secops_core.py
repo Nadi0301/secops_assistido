@@ -1,4 +1,5 @@
-﻿from src.core.database import get_db, init_db
+from src.core.log_insert import insert_anomaly_log
+from src.core.database import get_db, init_db
 from src.core.detector import detect_volumetric_anomalies
 from src.core.ml_detector import detect_multivariate_anomalies
 from src.core.rules_engine import evaluate_cloudtrail_event
@@ -22,15 +23,9 @@ def run_unified_pipeline():
     # 3. Persistir resultados na base de dados
     with get_db() as conn:
         for anom in vol_anomalies:
-            conn.execute(
-                "INSERT INTO logs (source, event_name, raw_data) VALUES (?, ?, ?)",
-                ("volumetric_detector", "VolumetricAnomaly", str(anom))
-            )
+            insert_anomaly_log(conn, "volumetric_detector", "VolumetricAnomaly", anom)
         for anom in ml_anomalies:
-            conn.execute(
-                "INSERT INTO logs (source, event_name, raw_data) VALUES (?, ?, ?)",
-                ("ml_detector", "MultivariateAnomaly", str(anom))
-            )
+            insert_anomaly_log(conn, "ml_detector", "MultivariateAnomaly", anom)
         conn.commit()
 
     return results
