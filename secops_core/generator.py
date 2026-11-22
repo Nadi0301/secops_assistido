@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import math
 import random
 import uuid
@@ -578,7 +579,7 @@ def generate_synthetic_logs(
             fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
     # Mantém cópia sincronizada na raiz caso scripts/usuário referenciem logs_simulados.jsonl direto
-    if mirror_root_jsonl:
+    if mirror_root_jsonl and not os.environ.get("PYTEST_CURRENT_TEST"):
         root_file = Path("logs_simulados.jsonl")
         if root_file.resolve() != out_file.resolve():
             with root_file.open("w", encoding="utf-8") as fh:

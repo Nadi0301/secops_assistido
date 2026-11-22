@@ -25,3 +25,6 @@ __pycache__/
 venv/
 data/*.db-shm
 data/*.db-wal
+logs_simulados.jsonl
+data/logs_simulados.jsonl
+data/secops.db

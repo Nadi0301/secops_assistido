@@ -1,19 +1,22 @@
-﻿from fastapi import FastAPI, HTTPException
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from src.core.database import get_db, init_db
 from src.core.detector import detect_volumetric_anomalies
 from src.core.rules_engine import evaluate_cloudtrail_event
 
-app = FastAPI(title="SecOps Assistido API", version="2.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="SecOps Assistido API", version="2.0", lifespan=lifespan)
 
 class LogIngestRequest(BaseModel):
     source: str
     event_name: str
     details: dict
-
-@app.on_event("startup")
-def startup_event():
-    init_db()
 
 @app.get("/")
 def read_root():
