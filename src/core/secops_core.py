@@ -1,4 +1,4 @@
-﻿import json
+import json
 from pathlib import Path
 from src.core.log_insert import insert_anomaly_log
 from src.core.database import get_db, init_db
@@ -32,6 +32,35 @@ def _load_candidate_events(vol_anomalies, ml_anomalies):
     return events
 
 
+def _to_cloudtrail_format(event):
+    """Converte evento snake_case (gerador) para o formato CloudTrail (camelCase).
+
+    Eventos que ja estao em camelCase, ou que nao sao eventos de log
+    (ex.: anomalias dos detectores), sao devolvidos sem alteracao.
+    """
+    if not isinstance(event, dict):
+        return event
+    if "eventName" in event or "event_name" not in event:
+        return event
+
+    identity = event.get("user_identity") or {}
+    normalized = dict(event)
+    normalized.update({
+        "eventName": event.get("event_name"),
+        "eventID": event.get("event_id"),
+        "eventSource": event.get("event_source"),
+        "eventTime": event.get("timestamp"),
+        "sourceIPAddress": event.get("source_ip"),
+        "awsRegion": event.get("aws_region"),
+        "errorCode": event.get("error_code"),
+        "userIdentity": {
+            "type": identity.get("user_type"),
+            "userName": identity.get("user_name"),
+            "arn": identity.get("arn"),
+        },
+    })
+    return normalized
+
 def run_unified_pipeline():
     init_db()
     results = {
@@ -51,6 +80,7 @@ def run_unified_pipeline():
     # 3. Avaliar regras deterministicas CloudTrail
     cloudtrail_alerts = []
     for event_data in _load_candidate_events(vol_anomalies, ml_anomalies):
+        event_data = _to_cloudtrail_format(event_data)
         triggered = evaluate_cloudtrail_event(event_data)
         for rule_hit in triggered:
             alert_record = dict(rule_hit)
