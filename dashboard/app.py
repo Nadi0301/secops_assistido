@@ -56,17 +56,18 @@ def fetch_health() -> Dict[str, Any]:
     }
 
 
-def fetch_stats() -> Dict[str, Any]:
+def fetch_stats(use_api: bool = True) -> Dict[str, Any]:
     """Consulta /stats na FastAPI ou no banco SQLite local."""
-    try:
-        with httpx.Client(timeout=2.0) as client:
-            resp = client.get(f"{_api_base()}/stats")
-            if resp.status_code == 200:
-                return resp.json()
-    except Exception:
-        pass
-    return SecOpsDatabase().get_summary_stats()
+    if use_api:
+        try:
+            with httpx.Client(timeout=2.0) as client:
+                resp = client.get(f"{_api_base()}/stats")
+                if resp.status_code == 200:
+                    return resp.json()
+        except Exception:
+            pass
 
+    return SecOpsDatabase().get_summary_stats()
 
 def fetch_logs(
     is_anomaly: Optional[bool] = None,
@@ -76,6 +77,7 @@ def fetch_logs(
     source_ip: Optional[str] = None,
     detector_type: Optional[str] = None,
     limit: int = 1500,
+    use_api: bool = True,
 ) -> List[Dict[str, Any]]:
     """Consulta /logs na FastAPI ou no banco SQLite local."""
     params: Dict[str, Any] = {"limit": limit, "offset": 0}
@@ -92,13 +94,14 @@ def fetch_logs(
     if detector_type:
         params["detector_type"] = detector_type
 
-    try:
-        with httpx.Client(timeout=2.5) as client:
-            resp = client.get(f"{_api_base()}/logs", params=params)
-            if resp.status_code == 200:
-                return resp.json().get("items", [])
-    except Exception:
-        pass
+    if use_api:
+        try:
+            with httpx.Client(timeout=2.5) as client:
+                resp = client.get(f"{_api_base()}/logs", params=params)
+                if resp.status_code == 200:
+                    return resp.json().get("items", [])
+        except Exception:
+            pass
 
     return SecOpsDatabase().query_logs(
         is_anomaly=is_anomaly,
@@ -163,14 +166,14 @@ def main() -> None:
     )
 
     health = fetch_health()
-    stats = fetch_stats()
+    stats = fetch_stats(use_api=health.get('api_online', False))
 
     # Garante que o banco esteja populado no primeiro acesso
     if stats.get("total_logs", 0) == 0:
         with st.spinner("Inicializando base SQLite e executando detecção híbrida..."):
             trigger_pipeline_execution(regenerate_logs=False, total_records=1500, anomaly_rate=0.06, seed=42)
-            stats = fetch_stats()
             health = fetch_health()
+            stats = fetch_stats(use_api=health.get('api_online', False))
 
     # Barra Lateral: Simulação e Orquestração (SEC-13)
     with st.sidebar:
@@ -218,7 +221,7 @@ def main() -> None:
     )
 
     with tab_exec:
-        all_logs = fetch_logs(limit=2000)
+        all_logs = fetch_logs(limit=2000, use_api=health.get('api_online', False))
         if all_logs:
             df_all = pd.DataFrame(all_logs)
             df_all["ts_parsed"] = pd.to_datetime(df_all["timestamp"], errors="coerce")
@@ -287,6 +290,7 @@ def main() -> None:
             user=user_or_ip.strip() or None,
             source_ip=ip_filter.strip() or None,
             limit=500,
+            use_api=health.get('api_online', False),
         )
 
         st.markdown(f"**{len(anomalies)} alertas encontrados** com os filtros selecionados.")

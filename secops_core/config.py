@@ -1,4 +1,4 @@
-﻿"""Carregamento centralizado de configurações via variáveis de ambiente (SEC-01)."""
+"""Carregamento centralizado de configurações via variáveis de ambiente (SEC-01)."""
 
 from __future__ import annotations
 
