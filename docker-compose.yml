@@ -1,4 +1,4 @@
-services:
+﻿services:
   api:
     build:
       context: .
@@ -22,5 +22,7 @@ services:
       - "8501:8501"
     depends_on:
       - api
+    volumes:
+      - ./data:/app/data
     environment:
-      - API_URL=http://api:8000
+      - API_BASE_URL=http://api:8000

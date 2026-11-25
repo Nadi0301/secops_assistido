@@ -8,3 +8,4 @@ requests
 pydantic
 pytest
 httpx
+pandas

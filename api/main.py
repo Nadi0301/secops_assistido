@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import FastAPI, HTTPException, Query
 
@@ -67,7 +67,7 @@ def list_logs(
     event_name: Optional[str] = Query(default=None, description="Filtra pelo nome do evento CloudTrail"),
     user: Optional[str] = Query(default=None, description="Filtra pelo nome do usuário AWS"),
     source_ip: Optional[str] = Query(default=None, description="Filtra pelo endereço IP de origem"),
-    detector_type: Optional[str] = Query(
+    detector_type: Optional[Literal["ZSCORE", "IFOREST", "CLOUDTRAIL"]] = Query(
         default=None,
         description="Filtra pelo detector que sinalizou (ZSCORE, IFOREST, CLOUDTRAIL)",
     ),

@@ -186,7 +186,7 @@ def main() -> None:
         anom_rate = st.slider("Taxa de anomalia injetada", min_value=0.02, max_value=0.20, value=0.06, step=0.01)
         seed_val = st.number_input("Seed aleatória", min_value=1, max_value=99999, value=42)
 
-        if st.button("🚀 Executar Pipeline SecOps", use_container_width=True, type="primary"):
+        if st.button("🚀 Executar Pipeline SecOps", width="stretch", type="primary"):
             with st.spinner("Processando logs com Z-Score, Isolation Forest, Regras CloudTrail e IA..."):
                 res = trigger_pipeline_execution(regen, int(rec_count), float(anom_rate), int(seed_val))
                 st.success(
@@ -210,6 +210,8 @@ def main() -> None:
     col5.metric("Status do Motor IA", ollama_mode_label)
 
     st.divider()
+    if not health.get("api_online"):
+        st.warning("API FastAPI offline no momento - operando em modo de fallback local com SQLite.")
 
     tab_exec, tab_invest = st.tabs(
         ["📊 1. Visão Executiva & Séries Temporais (SEC-13)", "🔍 2. Investigação de Alertas & Explicações IA (SEC-14)"]
@@ -260,10 +262,10 @@ def main() -> None:
             top_ev_df = pd.DataFrame(stats.get("top_anomalous_events", []))
             if not top_ips_df.empty:
                 st.markdown("**Top IPs Suspeitos:**")
-                st.dataframe(top_ips_df, use_container_width=True, hide_index=True)
+                st.dataframe(top_ips_df, width="stretch", hide_index=True)
             if not top_ev_df.empty:
                 st.markdown("**Top Eventos Anômalos:**")
-                st.dataframe(top_ev_df, use_container_width=True, hide_index=True)
+                st.dataframe(top_ev_df, width="stretch", hide_index=True)
 
     with tab_invest:
         st.subheader("🔎 Filtros de Investigação SecOps")
@@ -275,6 +277,7 @@ def main() -> None:
         )
         ev_filter = f3.text_input("Filtrar por Evento (ex: ConsoleLogin, StopLogging)", value="")
         user_or_ip = f4.text_input("Filtrar por Usuário AWS", value="")
+        ip_filter = st.text_input("Filtrar por IP de Origem (ex: 198.51.100.42)", value="")
 
         anomalies = fetch_logs(
             is_anomaly=True,
@@ -282,6 +285,7 @@ def main() -> None:
             detector_type=None if det_filter == "TODOS" else det_filter,
             event_name=ev_filter.strip() or None,
             user=user_or_ip.strip() or None,
+            source_ip=ip_filter.strip() or None,
             limit=500,
         )
 
@@ -307,7 +311,7 @@ def main() -> None:
             ]
             st.dataframe(
                 df_anom[display_cols],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
